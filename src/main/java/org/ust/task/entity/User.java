@@ -5,13 +5,21 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Cache;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 import java.time.LocalDateTime;
 
 /**
  * User entity representing a user in the system.
+ * Optimized with indexes and second-level caching.
  */
 @Entity
-@Table(name = "users")
+@Table(name = "users", indexes = {
+    @Index(name = "idx_user_username", columnList = "username"),
+    @Index(name = "idx_user_email", columnList = "email")
+})
+@Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
+@Cacheable
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

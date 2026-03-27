@@ -5,13 +5,22 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Cache;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 import java.time.LocalDateTime;
 
 /**
  * Comment entity representing a comment on a task.
+ * Optimized with composite indexes and second-level caching.
  */
 @Entity
-@Table(name = "comments")
+@Table(name = "comments", indexes = {
+    @Index(name = "idx_comment_task_id", columnList = "task_id"),
+    @Index(name = "idx_comment_user_id", columnList = "user_id"),
+    @Index(name = "idx_comment_composite_task_created", columnList = "task_id, created_at DESC")
+})
+@Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
+@Cacheable
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

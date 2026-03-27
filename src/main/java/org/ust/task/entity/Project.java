@@ -5,15 +5,24 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Cache;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Project entity representing a project in the system.
+ * Optimized with composite indexes and second-level caching.
  */
 @Entity
-@Table(name = "projects")
+@Table(name = "projects", indexes = {
+    @Index(name = "idx_project_owner_id", columnList = "owner_id"),
+    @Index(name = "idx_project_status", columnList = "status"),
+    @Index(name = "idx_project_composite_owner_status", columnList = "owner_id, status")
+})
+@Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
+@Cacheable
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -43,7 +52,8 @@ public class Project {
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
     
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
     @Builder.Default
     private List<Task> tasks = new ArrayList<>();
     

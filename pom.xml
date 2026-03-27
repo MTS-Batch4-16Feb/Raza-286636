@@ -55,11 +55,24 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Caching dependencies (EhCache only) -->
+        <!-- Caching dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-cache</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.ehcache</groupId>
+            <artifactId>ehcache</artifactId>
+        </dependency>
+
+
+        <!-- Virtual Threads and Async support -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+
         <!-- JUnit Platform Suite for test suites -->
         <dependency>
             <groupId>org.junit.platform</groupId>
