@@ -7,6 +7,7 @@ import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.scheduling.annotation.Async;
 import org.ust.task.dto.CommentCreateDTO;
 import org.ust.task.dto.CommentDTO;
 import org.ust.task.entity.Comment;
@@ -19,139 +20,104 @@ import org.ust.task.repository.TaskRepository;
 import org.ust.task.repository.UserRepository;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
-/**
- * Service layer for Comment entity operations.
- * Handles business logic, transaction management, and caching for comment-related operations.
- */
 @Service
 @Transactional
 @RequiredArgsConstructor
 @Slf4j
 public class CommentService implements CommentServiceInterface {
-    
+
     private final CommentRepository commentRepository;
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final CommentMapper commentMapper;
-    
-    /**
-     * Create a new comment on a task.
-     * Validates that both task and user exist before creating the comment.
-     *
-     * @param createDTO Comment creation data
-     * @return Created CommentDTO
-     * @throws ResourceNotFoundException if task or user not found
-     */
+
+    // Asynchronous create comment method
+    @Async("taskExecutor")
     @Override
     @CacheEvict(value = "comments", allEntries = true)
-    public CommentDTO createComment(CommentCreateDTO createDTO) {
+    public CompletableFuture<CommentDTO> createComment(CommentCreateDTO createDTO) {
         User user = userRepository.findById(createDTO.userId())
                 .orElseThrow(() -> ResourceNotFoundException.user(createDTO.userId()));
-        
+
         Task task = taskRepository.findById(createDTO.taskId())
                 .orElseThrow(() -> ResourceNotFoundException.task(createDTO.taskId()));
-        
+
         Comment comment = commentMapper.toEntity(createDTO);
         comment.setUser(user);
         comment.setTask(task);
-        
+
         Comment savedComment = commentRepository.save(comment);
         log.info("Comment created successfully: {}", savedComment.getId());
-        return commentMapper.toDTO(savedComment);
+        return CompletableFuture.completedFuture(commentMapper.toDTO(savedComment));
     }
-    
-    /**
-     * Retrieve comment by ID with caching.
-     *
-     * @param id Comment ID
-     * @return CommentDTO
-     * @throws ResourceNotFoundException if comment not found
-     */
+
+    // Asynchronous get comment by ID method
+    @Async("taskExecutor")
     @Override
     @Cacheable(value = "comments", key = "#id")
     @Transactional(readOnly = true)
-    public CommentDTO getCommentById(Long id) {
+    public CompletableFuture<CommentDTO> getCommentById(Long id) {
         Comment comment = commentRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.comment(id));
-        return commentMapper.toDTO(comment);
+        return CompletableFuture.completedFuture(commentMapper.toDTO(comment));
     }
-    
-    /**
-     * Retrieve all comments with caching.
-     *
-     * @return List of all CommentDTOs
-     */
+
+    // Asynchronous get all comments method
+    @Async("taskExecutor")
     @Override
     @Cacheable(value = "comments", key = "'all'")
     @Transactional(readOnly = true)
-    public List<CommentDTO> getAllComments() {
-        return commentMapper.toDTOList(commentRepository.findAll());
+    public CompletableFuture<List<CommentDTO>> getAllComments() {
+        return CompletableFuture.completedFuture(commentMapper.toDTOList(commentRepository.findAll()));
     }
-    
-    /**
-     * Retrieve all comments for a specific task, ordered by creation date descending.
-     *
-     * @param taskId Task ID
-     * @return List of CommentDTOs for the task
-     */
+
+    // Asynchronous get comments by task ID method
+    @Async("taskExecutor")
     @Override
     @Cacheable(value = "comments", key = "'task_' + #taskId")
     @Transactional(readOnly = true)
-    public List<CommentDTO> getCommentsByTaskId(Long taskId) {
+    public CompletableFuture<List<CommentDTO>> getCommentsByTaskId(Long taskId) {
         List<Comment> comments = commentRepository.findByTaskIdOrderByCreatedAtDesc(taskId);
-        return commentMapper.toDTOList(comments);
+        return CompletableFuture.completedFuture(commentMapper.toDTOList(comments));
     }
-    
-    /**
-     * Retrieve all comments created by a specific user, ordered by creation date descending.
-     *
-     * @param userId User ID
-     * @return List of CommentDTOs created by the user
-     */
+
+    // Asynchronous get comments by user ID method
+      @Async("taskExecutor")
     @Override
     @Cacheable(value = "comments", key = "'user_' + #userId")
     @Transactional(readOnly = true)
-    public List<CommentDTO> getCommentsByUserId(Long userId) {
+    public CompletableFuture<List<CommentDTO>> getCommentsByUserId(Long userId) {
         List<Comment> comments = commentRepository.findByUserIdOrderByCreatedAtDesc(userId);
-        return commentMapper.toDTOList(comments);
+        return CompletableFuture.completedFuture(commentMapper.toDTOList(comments));
     }
-    
-    /**
-     * Update comment content.
-     *
-     * @param id Comment ID
-     * @param newContent New comment content
-     * @return Updated CommentDTO
-     * @throws ResourceNotFoundException if comment not found
-     */
+
+    // Asynchronous update comment content method
+      @Async("taskExecutor")
     @Override
     @CachePut(value = "comments", key = "#id")
     @CacheEvict(value = "comments", allEntries = true)
-    public CommentDTO updateComment(Long id, String newContent) {
+    public CompletableFuture<CommentDTO> updateComment(Long id, String newContent) {
         Comment existingComment = commentRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.comment(id));
-        
+
         existingComment.setContent(newContent);
         Comment savedComment = commentRepository.save(existingComment);
         log.info("Comment updated successfully: {}", savedComment.getId());
-        return commentMapper.toDTO(savedComment);
+        return CompletableFuture.completedFuture(commentMapper.toDTO(savedComment));
     }
-    
-    /**
-     * Delete comment by ID.
-     *
-     * @param id Comment ID to delete
-     * @throws ResourceNotFoundException if comment not found
-     */
+
+    // Asynchronous delete comment method
+      @Async("taskExecutor")
     @Override
     @CacheEvict(value = "comments", allEntries = true)
-    public void deleteComment(Long id) {
+    public CompletableFuture<Void> deleteComment(Long id) {
         if (!commentRepository.existsById(id)) {
             throw ResourceNotFoundException.comment(id);
         }
         commentRepository.deleteById(id);
         log.info("Comment deleted successfully: {}", id);
+        return CompletableFuture.completedFuture(null);
     }
 }
-
