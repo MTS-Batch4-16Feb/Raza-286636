@@ -161,7 +161,7 @@ public class TaskController {
     @GetMapping("/{id}/comments")
     @Operation(summary = "Get task comments", description = "Retrieves all comments for a task")
     public ResponseEntity<ApiResponse<List<CommentDTO>>> getTaskComments(@Parameter(description = "Task ID") @PathVariable Long id) {
-        List<CommentDTO> comments = commentService.getCommentsByTaskId(id);
+        List<CommentDTO> comments = commentService.getCommentsByTaskId(id).join();
         ApiResponse<List<CommentDTO>> response = ApiResponse.success(comments,
             String.format("Retrieved %d comments", comments.size()));
         return ResponseEntity.ok(response);
@@ -183,7 +183,7 @@ public class TaskController {
         // Ensure comment is tied to this specific task
         CommentDTO comment = commentService.createComment(
             new CommentCreateDTO(commentCreateDTO.content(), id, commentCreateDTO.userId())
-        );
+        ).join();
         ApiResponse<CommentDTO> response = ApiResponse.success(comment, "Comment added successfully");
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
